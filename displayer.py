@@ -1,6 +1,9 @@
+import time
 from datetime import datetime
 
 import cv2
+
+from shared_memory_pool import SharedMemoryPool
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SCALE = 0.7
@@ -10,11 +13,15 @@ BOX_THICKNESS = 2
 TEXT_COLOR = (255, 255, 255)
 TEXT_POSITION = (10, 30)
 BLUR_KERNEL_SIZE = (51, 51)
+MIN_WAIT_MS = 1
 
 
 class Displayer:
-    def __init__(self, input_queue):
+    def __init__(self, input_queue, pool_metadata, free_slots, fps):
         self._inputQueue = input_queue
+        self._poolMetadata = pool_metadata
+        self._freeSlots = free_slots
+        self._fps = fps
 
     @staticmethod
     def _blur_detection(display_frame, bbox):
@@ -38,16 +45,19 @@ class Displayer:
         cls._draw_timestamp(display_frame)
 
     def run(self):
+        pool = SharedMemoryPool.from_metadata(self._poolMetadata)
         try:
             while True:
                 msg = self._inputQueue.get()
                 if msg.isSentinel:
                     break
-                # copy to avoid mutating shared data
-                display_frame = msg.frame.copy()
+                # copy out of shared memory before releasing the slot
+                display_frame = pool.get_frame_array(msg.slotIndex).copy()
+                self._freeSlots.put(msg.slotIndex)
                 self._draw(display_frame, msg.detections)
                 cv2.imshow("Pipeline", display_frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
         finally:
             cv2.destroyAllWindows()
+            pool.close()

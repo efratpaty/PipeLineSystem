@@ -4,8 +4,8 @@ BoundingBox = namedtuple('BoundingBox', ['x', 'y', 'w', 'h'])
 
 
 class PipelineMessage:
-    def __init__(self, frame, frame_index, detections, is_sentinel):
-        self.frame = frame
+    def __init__(self, slot_index, frame_index, detections, is_sentinel):
+        self.slotIndex = slot_index
         self.frameIndex = frame_index
         self.detections = detections
         self.isSentinel = is_sentinel

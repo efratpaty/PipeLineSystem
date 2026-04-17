@@ -1,15 +1,17 @@
 import cv2
 
 from pipeline_message import BoundingBox, PipelineMessage
+from shared_memory_pool import SharedMemoryPool
 
 # Filters out tiny flickering pixels or camera noise that technically pass the threshold but aren't meaningful motion
 MIN_CONTOUR_AREA = 500
 
 
 class Detector:
-    def __init__(self, input_queue, output_queue):
+    def __init__(self, input_queue, output_queue, pool_metadata):
         self._inputQueue = input_queue
         self._outputQueue = output_queue
+        self._poolMetadata = pool_metadata
 
     def _get_detections(self, frame, prev_frame):
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -23,6 +25,7 @@ class Detector:
         return detections, gray_frame
 
     def run(self):
+        pool = SharedMemoryPool.from_metadata(self._poolMetadata)
         prev_frame = None
         is_sentinel_sent = False
         try:
@@ -32,9 +35,10 @@ class Detector:
                     self._outputQueue.put(PipelineMessage.create_sentinel())
                     is_sentinel_sent = True
                     break
-                detections, prev_frame = self._get_detections(msg.frame, prev_frame)
-                out_msg = PipelineMessage(msg.frame, msg.frameIndex, detections, False)
-                self._outputQueue.put(out_msg)
+                frame = pool.get_frame_array(msg.slotIndex)
+                detections, prev_frame = self._get_detections(frame, prev_frame)
+                self._outputQueue.put(PipelineMessage(msg.slotIndex, msg.frameIndex, detections, False))
         finally:
             if not is_sentinel_sent:
                 self._outputQueue.put(PipelineMessage.create_sentinel())
+            pool.close()
