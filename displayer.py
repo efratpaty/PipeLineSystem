@@ -17,29 +17,26 @@ class Displayer:
         self._inputQueue = input_queue
 
     @staticmethod
-    def _blur_detections(display_frame, detections):
-        for (x, y, w, h) in detections:
-            display_frame[y:y + h, x:x + w] = cv2.GaussianBlur(
-                display_frame[y:y + h, x:x + w],
-                BLUR_KERNEL_SIZE,
-                0
-            )
+    def _blur_detection(display_frame, bbox):
+        roi = display_frame[bbox.y:bbox.y + bbox.h, bbox.x:bbox.x + bbox.w]
+        roi[:] = cv2.GaussianBlur(roi, BLUR_KERNEL_SIZE, 0)
 
     @staticmethod
-    def _draw_boxes(display_frame, detections):
-        for (x, y, w, h) in detections:
-            cv2.rectangle(display_frame, (x, y), (x + w, y + h), BOX_COLOR, BOX_THICKNESS)
+    def _draw_box(display_frame, bbox):
+        cv2.rectangle(display_frame, (bbox.x, bbox.y), (bbox.x + bbox.w, bbox.y + bbox.h), BOX_COLOR, BOX_THICKNESS)
 
     @staticmethod
     def _draw_timestamp(display_frame):
         current_time = datetime.now().strftime("%H:%M:%S")
         cv2.putText(display_frame, current_time, TEXT_POSITION, FONT, FONT_SCALE, TEXT_COLOR, FONT_THICKNESS)
 
-    @staticmethod
-    def _draw(display_frame, detections):
-        Displayer._blur_detections(display_frame, detections)
-        Displayer._draw_boxes(display_frame, detections)
-        Displayer._draw_timestamp(display_frame)
+    @classmethod
+    def _draw(cls, display_frame, detections):
+        for bbox in detections:
+            cls._blur_detection(display_frame, bbox)
+            cls._draw_box(display_frame, bbox)
+        cls._draw_timestamp(display_frame)
+
     def run(self):
         while True:
             msg = self._inputQueue.get()
@@ -50,6 +47,5 @@ class Displayer:
             self._draw(display_frame, msg.detections)
             cv2.imshow("Pipeline", display_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                # allow the user to quit early
                 break
         cv2.destroyAllWindows()
