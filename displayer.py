@@ -1,4 +1,3 @@
-import queue
 import time
 from datetime import datetime
 
@@ -65,17 +64,7 @@ class Displayer:
                 frame_count += 1
                 target_time = start_time + frame_count * target_interval
                 wait_ms = max(MIN_WAIT_MS, int((target_time - time.perf_counter()) * 1000))
-                if cv2.waitKey(wait_ms) & 0xFF == ord('q'):
-                    break
+                cv2.waitKey(wait_ms)
         finally:
             cv2.destroyAllWindows()
             pool.close()
-            # return slots for any frames the detector queued but we never consumed;
-            # without this, the streamer starves on freeSlots.get() after an early 'q' exit
-            while True:
-                try:
-                    msg = self._inputQueue.get_nowait()
-                    if not msg.isSentinel:
-                        self._freeSlots.put(msg.slotIndex)
-                except queue.Empty:
-                    break

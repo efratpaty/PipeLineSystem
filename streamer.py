@@ -1,5 +1,3 @@
-import queue
-
 import cv2
 import numpy
 
@@ -26,11 +24,7 @@ class Streamer:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                # safety net: displayer may exit without returning all slots
-                try:
-                    slot_index = self._freeSlots.get(timeout=5)
-                except queue.Empty:
-                    break
+                slot_index = self._freeSlots.get()
                 numpy.copyto(pool.get_frame_array(slot_index), frame)
                 self._outputQueue.put(PipelineMessage(slot_index, frame_index, None))
                 frame_index += 1
