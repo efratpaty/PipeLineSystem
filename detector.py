@@ -24,11 +24,17 @@ class Detector:
 
     def run(self):
         prev_frame = None
-        while True:
-            msg = self._inputQueue.get()
-            if msg.isSentinel:
+        is_sentinel_sent = False
+        try:
+            while True:
+                msg = self._inputQueue.get()
+                if msg.isSentinel:
+                    self._outputQueue.put(PipelineMessage.create_sentinel())
+                    is_sentinel_sent = True
+                    break
+                detections, prev_frame = self._get_detections(msg.frame, prev_frame)
+                out_msg = PipelineMessage(msg.frame, msg.frameIndex, detections, False)
+                self._outputQueue.put(out_msg)
+        finally:
+            if not is_sentinel_sent:
                 self._outputQueue.put(PipelineMessage.create_sentinel())
-                break
-            detections, prev_frame = self._get_detections(msg.frame, prev_frame)
-            out_msg = PipelineMessage(msg.frame, msg.frameIndex, detections, False)
-            self._outputQueue.put(out_msg)
