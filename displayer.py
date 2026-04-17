@@ -38,14 +38,16 @@ class Displayer:
         cls._draw_timestamp(display_frame)
 
     def run(self):
-        while True:
-            msg = self._inputQueue.get()
-            if msg.isSentinel:
-                break
-            # copy to avoid mutating shared data
-            display_frame = msg.frame.copy()
-            self._draw(display_frame, msg.detections)
-            cv2.imshow("Pipeline", display_frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        cv2.destroyAllWindows()
+        try:
+            while True:
+                msg = self._inputQueue.get()
+                if msg.isSentinel:
+                    break
+                # copy to avoid mutating shared data
+                display_frame = msg.frame.copy()
+                self._draw(display_frame, msg.detections)
+                cv2.imshow("Pipeline", display_frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        finally:
+            cv2.destroyAllWindows()
