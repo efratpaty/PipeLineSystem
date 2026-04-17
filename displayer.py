@@ -46,6 +46,9 @@ class Displayer:
 
     def run(self):
         pool = SharedMemoryPool.from_metadata(self._poolMetadata)
+        target_interval = 1.0 / self._fps
+        start_time = None
+        frame_count = 0
         try:
             while True:
                 msg = self._inputQueue.get()
@@ -56,7 +59,12 @@ class Displayer:
                 self._freeSlots.put(msg.slotIndex)
                 self._draw(display_frame, msg.detections)
                 cv2.imshow("Pipeline", display_frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                if start_time is None:
+                    start_time = time.perf_counter()
+                frame_count += 1
+                target_time = start_time + frame_count * target_interval
+                wait_ms = max(MIN_WAIT_MS, int((target_time - time.perf_counter()) * 1000))
+                if cv2.waitKey(wait_ms) & 0xFF == ord('q'):
                     break
         finally:
             cv2.destroyAllWindows()
