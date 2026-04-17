@@ -14,6 +14,10 @@ class Streamer:
 
     def run(self):
         cap = cv2.VideoCapture(self._videoPath)
+        if not cap.isOpened():
+            print(f"[ERROR] Cannot open video: {self._videoPath}")
+            self._outputQueue.put(PipelineMessage.create_sentinel())
+            return
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps <= 0:
             fps = FALLBACK_FPS
