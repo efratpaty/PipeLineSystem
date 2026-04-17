@@ -27,18 +27,14 @@ class Detector:
     def run(self):
         pool = SharedMemoryPool.from_metadata(self._poolMetadata)
         prev_frame = None
-        is_sentinel_sent = False
         try:
             while True:
                 msg = self._inputQueue.get()
                 if msg.isSentinel:
-                    self._outputQueue.put(PipelineMessage.create_sentinel())
-                    is_sentinel_sent = True
                     break
                 frame = pool.get_frame_array(msg.slotIndex)
                 detections, prev_frame = self._get_detections(frame, prev_frame)
-                self._outputQueue.put(PipelineMessage(msg.slotIndex, msg.frameIndex, detections, False))
+                self._outputQueue.put(PipelineMessage(msg.slotIndex, msg.frameIndex, detections))
         finally:
-            if not is_sentinel_sent:
-                self._outputQueue.put(PipelineMessage.create_sentinel())
+            self._outputQueue.put(PipelineMessage.create_sentinel())
             pool.close()

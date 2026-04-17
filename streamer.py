@@ -17,13 +17,11 @@ class Streamer:
     def run(self):
         pool = SharedMemoryPool.from_metadata(self._poolMetadata)
         cap = cv2.VideoCapture(self._videoPath)
-        if not cap.isOpened():
-            print(f"[ERROR] Cannot open video: {self._videoPath}")
-            self._outputQueue.put(PipelineMessage.create_sentinel())
-            pool.close()
-            return
         frame_index = 0
         try:
+            if not cap.isOpened():
+                print(f"[ERROR] Cannot open video: {self._videoPath}")
+                return
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -34,7 +32,7 @@ class Streamer:
                 except queue.Empty:
                     break
                 numpy.copyto(pool.get_frame_array(slot_index), frame)
-                self._outputQueue.put(PipelineMessage(slot_index, frame_index, None, False))
+                self._outputQueue.put(PipelineMessage(slot_index, frame_index, None))
                 frame_index += 1
         finally:
             cap.release()
