@@ -1,3 +1,4 @@
+import argparse
 import multiprocessing
 
 from detector import Detector
@@ -8,11 +9,14 @@ QUEUE_MAX_SIZE = 10
 
 
 if __name__ == "__main__":
-    video_path = r"C:\Users\Efrat\Documents\PrivateFolder\NewProject\People - 6387.mp4"
+    parser = argparse.ArgumentParser(description="Motion detection pipeline")
+    parser.add_argument("video_path", help="Path to the input video file")
+    args = parser.parse_args()
+
     streamer_to_detector = multiprocessing.Queue(maxsize=QUEUE_MAX_SIZE)
     detector_to_displayer = multiprocessing.Queue(maxsize=QUEUE_MAX_SIZE)
 
-    streamer = Streamer(video_path, streamer_to_detector)
+    streamer = Streamer(args.video_path, streamer_to_detector)
     detector = Detector(streamer_to_detector, detector_to_displayer)
     displayer = Displayer(detector_to_displayer)
 
@@ -31,3 +35,5 @@ if __name__ == "__main__":
     for process in [detector_process, streamer_process]:
         if process.is_alive():
             process.terminate()
+        elif process.exitcode not in (0, None):
+            print(f"[WARNING] Process {process.name} exited with code {process.exitcode}")
