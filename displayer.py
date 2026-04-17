@@ -70,3 +70,12 @@ class Displayer:
         finally:
             cv2.destroyAllWindows()
             pool.close()
+            # return slots for any frames the detector queued but we never consumed;
+            # without this, the streamer starves on freeSlots.get() after an early 'q' exit
+            while True:
+                try:
+                    msg = self._inputQueue.get_nowait()
+                    if not msg.isSentinel:
+                        self._freeSlots.put(msg.slotIndex)
+                except queue.Empty:
+                    break

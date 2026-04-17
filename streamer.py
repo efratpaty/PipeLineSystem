@@ -28,7 +28,11 @@ class Streamer:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                slot_index = self._freeSlots.get()
+                # safety net: displayer may exit without returning all slots
+                try:
+                    slot_index = self._freeSlots.get(timeout=5)
+                except queue.Empty:
+                    break
                 numpy.copyto(pool.get_frame_array(slot_index), frame)
                 self._outputQueue.put(PipelineMessage(slot_index, frame_index, None, False))
                 frame_index += 1

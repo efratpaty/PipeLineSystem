@@ -63,6 +63,7 @@ if __name__ == "__main__":
         for process in [detector_process, streamer_process]:
             if process.is_alive():
                 process.terminate()
+                process.join()
             elif process.exitcode not in (0, None):
                 print(f"[WARNING] Process {process.name} exited with code {process.exitcode}")
     finally:
